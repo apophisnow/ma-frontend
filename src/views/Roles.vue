@@ -26,18 +26,22 @@
               </div>
             </template>
             <template #item.actions="{ item }">
-              <v-btn
-                v-if="!item.is_system"
-                icon
-                @click="editRole(item)"
-                ><v-icon>mdi-pencil</v-icon></v-btn
-              >
-              <v-btn
-                v-if="!item.is_system"
-                icon
-                @click="deleteRoleConfirm(item)"
-                ><v-icon color="red">mdi-delete</v-icon></v-btn
-              >
+              <div style="display: flex; gap: 4px;">
+                <v-btn
+                  v-if="!item.is_system"
+                  icon
+                  size="small"
+                  @click="editRole(item)"
+                  ><v-icon>mdi-pencil</v-icon></v-btn
+                >
+                <v-btn
+                  v-if="!item.is_system"
+                  icon
+                  size="small"
+                  @click="deleteRoleConfirm(item)"
+                  ><v-icon color="red">mdi-delete</v-icon></v-btn
+                >
+              </div>
             </template>
           </v-data-table>
         </v-card>

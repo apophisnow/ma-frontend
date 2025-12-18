@@ -43,6 +43,7 @@
           density="comfortable"
           :disabled="isCurrentUser"
           class="mb-2"
+          :menu-props="{ maxHeight: 300 }"
         />
         <v-text-field
           v-model="localUser.password"
@@ -182,18 +183,15 @@ const localUser = ref({
   providerFilter: [] as string[],
 });
 
-const roleOptions = [
-  { title: t("auth.admin_role"), value: "admin" },
-  { title: t("auth.user_role"), value: "user" },
-];
+const roleOptions = ref<Array<{ title: string; value: string }>>([]);
 
-// load server roles and append custom ones
+// load all server roles
 const { roles, fetchRoles } = useRoles();
 fetchRoles().then(() => {
-  for (const r of roles.value) {
-    if (r.role_name === "admin" || r.role_name === "user") continue;
-    roleOptions.push({ title: r.role_name, value: r.role_name });
-  }
+  roleOptions.value = roles.value.map((r) => ({
+    title: r.name,
+    value: r.role_id,
+  }));
 });
 
 const playerOptions = computed(() => {
@@ -347,6 +345,13 @@ watch(
   (newVal) => {
     if (newVal) {
       resetForm();
+      // Refresh roles when dialog opens to get any newly created roles
+      fetchRoles().then(() => {
+        roleOptions.value = roles.value.map((r) => ({
+          title: r.name,
+          value: r.role_id,
+        }));
+      });
     }
   },
 );

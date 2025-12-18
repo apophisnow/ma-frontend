@@ -52,6 +52,7 @@
           variant="outlined"
           density="comfortable"
           class="mb-2"
+          :menu-props="{ maxHeight: 300 }"
         />
 
         <!-- Player Filter -->
@@ -168,19 +169,15 @@ const localUser = ref({
   providerFilter: [] as string[],
 });
 
-const roleOptions = [
-  { title: t("auth.admin_role"), value: "admin" },
-  { title: t("auth.user_role"), value: "user" },
-];
+const roleOptions = ref<Array<{ title: string; value: string }>>([]);
 
-// fetch custom roles and append to roleOptions
+// load all server roles
 const { roles, fetchRoles } = useRoles();
 fetchRoles().then(() => {
-  for (const r of roles.value) {
-    // skip built-ins
-    if (r.role_name === "admin" || r.role_name === "user") continue;
-    roleOptions.push({ title: r.role_name, value: r.role_name });
-  }
+  roleOptions.value = roles.value.map((r) => ({
+    title: r.name,
+    value: r.role_id,
+  }));
 });
 
 const playerOptions = computed(() => {
@@ -283,7 +280,15 @@ const handleCreate = async () => {
 watch(
   () => props.modelValue,
   (newVal) => {
-    if (!newVal) {
+    if (newVal) {
+      // Refresh roles when dialog opens to get any newly created roles
+      fetchRoles().then(() => {
+        roleOptions.value = roles.value.map((r) => ({
+          title: r.name,
+          value: r.role_id,
+        }));
+      });
+    } else {
       resetForm();
     }
   },
