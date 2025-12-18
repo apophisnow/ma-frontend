@@ -139,7 +139,8 @@
 
 <script setup lang="ts">
 import { api } from "@/plugins/api";
-import { UserRole, ProviderType } from "@/plugins/api/interfaces";
+import { ProviderType } from "@/plugins/api/interfaces";
+import { useRoles } from "@/composables/useRoles";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { toast } from "vuetify-sonner";
@@ -162,7 +163,7 @@ const localUser = ref({
   displayName: "",
   password: "",
   confirmPassword: "",
-  role: "user" as UserRole,
+  role: "user",
   playerFilter: [] as string[],
   providerFilter: [] as string[],
 });
@@ -171,6 +172,16 @@ const roleOptions = [
   { title: t("auth.admin_role"), value: "admin" },
   { title: t("auth.user_role"), value: "user" },
 ];
+
+// fetch custom roles and append to roleOptions
+const { roles, fetchRoles } = useRoles();
+fetchRoles().then(() => {
+  for (const r of roles.value) {
+    // skip built-ins
+    if (r.role_name === "admin" || r.role_name === "user") continue;
+    roleOptions.push({ title: r.role_name, value: r.role_name });
+  }
+});
 
 const playerOptions = computed(() => {
   return Object.values(api.players)
@@ -226,7 +237,7 @@ const resetForm = () => {
     displayName: "",
     password: "",
     confirmPassword: "",
-    role: UserRole.USER,
+    role: "user",
     playerFilter: [],
     providerFilter: [],
   };

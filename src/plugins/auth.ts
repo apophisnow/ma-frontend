@@ -3,7 +3,7 @@
  * Handles token storage, and authentication state
  */
 
-import type { User } from "./api/interfaces";
+import type { Role, User } from "./api/interfaces";
 import { store } from "./store";
 
 const TOKEN_STORAGE_KEY = "ma_access_token";
@@ -11,6 +11,7 @@ const TOKEN_STORAGE_KEY = "ma_access_token";
 export class AuthManager {
   private token: string | null = null;
   private baseUrl: string = "";
+  private userRoles: Role[] = [];
 
   constructor() {
     this.token = localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -49,6 +50,53 @@ export class AuthManager {
    */
   isAdmin(): boolean {
     return store.currentUser?.role === "admin";
+  }
+
+  /**
+   * Set user roles (should be called after fetching from API)
+   */
+  setUserRoles(roles: Role[]): void {
+    this.userRoles = roles;
+  }
+
+  /**
+   * Get user roles
+   */
+  getUserRoles(): Role[] {
+    return this.userRoles;
+  }
+
+  /**
+   * Check if current user has a specific permission
+   */
+  hasPermission(permission: string): boolean {
+    // Admin role has all permissions
+    if (this.isAdmin()) {
+      return true;
+    }
+
+    // Check if any of the user's roles has the permission
+    return this.userRoles.some((role) => {
+      // System admin permission grants all permissions
+      if (role.permissions.includes("system.admin")) {
+        return true;
+      }
+      return role.permissions.includes(permission);
+    });
+  }
+
+  /**
+   * Check if current user has any of the specified permissions
+   */
+  hasAnyPermission(permissions: string[]): boolean {
+    return permissions.some((permission) => this.hasPermission(permission));
+  }
+
+  /**
+   * Check if current user has all of the specified permissions
+   */
+  hasAllPermissions(permissions: string[]): boolean {
+    return permissions.every((permission) => this.hasPermission(permission));
   }
 
   /**

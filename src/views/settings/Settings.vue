@@ -268,6 +268,9 @@ const activeTab = computed(() => {
   if (name.includes("user")) {
     return "users";
   }
+  if (name.includes("roles")) {
+    return "users";
+  }
   if (name.includes("about")) {
     return "about";
   }

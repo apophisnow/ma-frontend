@@ -53,8 +53,27 @@
           </div>
         </template>
         <template #subtitle>
-          <div class="line-clamp-1">
-            {{ user.username }} • {{ $t(`auth.${user.role}_role`) }}
+          <div class="line-clamp-1" style="display:flex;gap:8px;align-items:center">
+            <div>{{ user.username }} •</div>
+            <div>
+              <v-tooltip>
+                <template #activator="{ props }">
+                  <span v-bind="props">{{ roleLabel(user) }}</span>
+                </template>
+                <div style="max-width:320px">
+                  <div v-if="rolesMap[user.role]">
+                    <div><strong>{{ rolesMap[user.role].description || user.role }}</strong></div>
+                    <div style="margin-top:6px"><em>{{ $t('auth.permissions') }}:</em></div>
+                    <ul style="margin:6px 0 0 16px;padding:0;list-style:disc">
+                      <li v-for="p in rolesMap[user.role].permissions" :key="p">{{ p }}</li>
+                    </ul>
+                  </div>
+                  <div v-else>
+                    {{ user.role }}
+                  </div>
+                </div>
+              </v-tooltip>
+            </div>
           </div>
         </template>
         <template #append>
@@ -112,6 +131,7 @@ import ManageTokensDialog from "@/components/users/ManageTokensDialog.vue";
 import RevokeTokenDialog from "@/components/users/RevokeTokenDialog.vue";
 import { api } from "@/plugins/api";
 import type { AuthToken, User } from "@/plugins/api/interfaces";
+import { useRoles } from "@/composables/useRoles";
 import { eventbus } from "@/plugins/eventbus";
 import { store } from "@/plugins/store";
 import { computed, onMounted, ref } from "vue";
@@ -144,6 +164,16 @@ const filteredUsers = computed(() => {
   });
 });
 
+// roles map for quick lookup
+const { roles, fetchRoles } = useRoles();
+const rolesMap = computed(() => {
+  const map: Record<string, any> = {};
+  for (const r of roles.value) {
+    map[r.role_name] = r;
+  }
+  return map;
+});
+
 const isCurrentUser = (user: User | null): boolean => {
   if (!user || !store.currentUser) return false;
   return user.user_id === store.currentUser.user_id;
@@ -152,6 +182,8 @@ const isCurrentUser = (user: User | null): boolean => {
 const loadUsers = async () => {
   try {
     users.value = await api.getAllUsers();
+    // also load roles so we can show permissions and descriptions
+    fetchRoles().catch(() => {});
   } catch (error) {
     toast.error(t("auth.users_load_failed"));
   }
@@ -270,6 +302,14 @@ const onMenu = (evt: Event, user: User) => {
 onMounted(() => {
   loadUsers();
 });
+
+function roleLabel(user: User) {
+  if (user.role === 'admin') return t('auth.admin_role');
+  if (user.role === 'user') return t('auth.user_role');
+  const r = rolesMap.value[user.role];
+  if (r && r.description) return r.role_name;
+  return user.role;
+}
 </script>
 
 <style scoped>

@@ -266,13 +266,45 @@ const routes = [
           },
           {
             path: "users",
-            name: "usersettings",
+            // Parent wrapper for user-related settings (shows tabs)
             component: () =>
               import(
-                /* webpackChunkName: "usersettings" */ "@/views/settings/UserManagement.vue"
+                /* webpackChunkName: "userssettings" */ "@/views/settings/UsersSettings.vue"
               ),
             props: true,
             meta: { requiresAdmin: true },
+            children: [
+              {
+                path: "",
+                name: "usersettings",
+                component: () =>
+                  import(
+                    /* webpackChunkName: "usersettings" */ "@/views/settings/UserManagement.vue"
+                  ),
+                props: true,
+                meta: { requiresAdmin: true },
+              },
+              {
+                path: "roles",
+                name: "rolesettings",
+                component: () =>
+                  import(
+                    /* webpackChunkName: "rolesettings" */ "@/views/Roles.vue"
+                  ),
+                props: true,
+                meta: { requiresAdmin: true },
+              },
+              {
+                path: "permissions",
+                name: "permissionsettings",
+                component: () =>
+                  import(
+                    /* webpackChunkName: "permissionsettings" */ "@/views/settings/Permissions.vue"
+                  ),
+                props: true,
+                meta: { requiresAdmin: true },
+              },
+            ],
           },
           {
             path: "about",

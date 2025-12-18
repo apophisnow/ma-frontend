@@ -958,6 +958,38 @@ export enum UserRole {
   USER = "user",
 }
 
+export enum PermissionScope {
+  // Player permissions
+  PLAYER_CONTROL = "player.control",
+  PLAYER_VOLUME = "player.volume",
+  PLAYER_QUEUE = "player.queue",
+  PLAYER_POWER = "player.power",
+  PLAYER_VIEW = "player.view",
+
+  // Library permissions
+  LIBRARY_READ = "library.read",
+  LIBRARY_WRITE = "library.write",
+  LIBRARY_DELETE = "library.delete",
+
+  // Playlist permissions
+  PLAYLIST_READ = "playlist.read",
+  PLAYLIST_WRITE = "playlist.write",
+  PLAYLIST_DELETE = "playlist.delete",
+
+  // Provider permissions
+  PROVIDER_VIEW = "provider.view",
+  PROVIDER_MANAGE = "provider.manage",
+
+  // System permissions
+  SYSTEM_SETTINGS = "system.settings",
+  SYSTEM_ADMIN = "system.admin",
+
+  // User permissions
+  USER_READ = "user.read",
+  USER_WRITE = "user.write",
+  USER_DELETE = "user.delete",
+}
+
 export enum AuthProviderType {
   BUILTIN = "builtin",
   OAUTH_HOMEASSISTANT = "oauth_homeassistant",
@@ -966,7 +998,7 @@ export enum AuthProviderType {
 export interface User {
   user_id: string;
   username: string;
-  role: UserRole;
+  role: string;
   enabled: boolean;
   created_at: string;
   display_name?: string;
@@ -1014,6 +1046,21 @@ export interface SetupRequest {
   password: string;
   display_name?: string;
   device_name?: string;
+}
+
+export interface Role {
+  role_id: string;
+  name: string;
+  description: string;
+  is_system: boolean;
+  permissions: string[];
+  created_at?: string;
+}
+
+export interface Permission {
+  scope: string;
+  name: string;
+  description: string;
 }
 
 // Remote Access interfaces
