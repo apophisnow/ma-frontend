@@ -1381,10 +1381,31 @@ const login = async () => {
   isAuthenticating.value = true;
   loginError.value = null;
 
-  emit("authenticated", {
-    username: username.value.trim(),
-    password: password.value,
-  });
+  // Check if this is initial setup (no users yet)
+  const serverInfo = api.serverInfo.value;
+  if (serverInfo && serverInfo.onboard_done === false) {
+    // This is first-time setup - call setup endpoint
+    try {
+      const result = await api.setupInitialAdmin(
+        username.value.trim(),
+        password.value,
+      );
+
+      // Setup successful, emit authenticated event with token and user
+      emit("authenticated", {
+        token: result.token,
+        user: result.user,
+      });
+    } catch (error) {
+      handleAuthenticationError(error);
+    }
+  } else {
+    // Normal login flow
+    emit("authenticated", {
+      username: username.value.trim(),
+      password: password.value,
+    });
+  }
 };
 
 /**

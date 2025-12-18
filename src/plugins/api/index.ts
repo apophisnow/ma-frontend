@@ -15,12 +15,14 @@ import {
   type EventMessage,
   type MassEvent,
   type MediaItemType,
+  type Permission,
   type Player,
   type PlayerQueue,
   type Playlist,
   type ProviderInstance,
   type QueueItem,
   type Radio,
+  type Role,
   type ServerInfoMessage,
   type SuccessResultMessage,
   type SyncTask,
@@ -50,7 +52,6 @@ import {
   RemoteAccessInfo,
   RepeatMode,
   SearchResults,
-  UserRole,
 } from "./interfaces";
 
 const DEBUG = process.env.NODE_ENV === "development";
@@ -345,6 +346,48 @@ export class MusicAssistantApi {
       this.state.value = ConnectionState.AUTH_REQUIRED;
       throw error;
     }
+  }
+
+  /**
+   * Setup initial admin user (first-time setup)
+   */
+  public async setupInitialAdmin(
+    username: string,
+    password: string,
+    deviceName?: string,
+  ): Promise<{ token: string; user: User }> {
+    if (!this.baseUrl) {
+      throw new Error("Base URL not set");
+    }
+
+    const response = await fetch(`${this.baseUrl}/setup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        password,
+        device_name: deviceName || getDeviceName(),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Setup failed");
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.token || !data.user) {
+      throw new Error(data.error || "Setup failed");
+    }
+
+    // Authenticate with the returned token
+    await this.sendCommand("auth", { token: data.token });
+    this.state.value = ConnectionState.AUTHENTICATED;
+
+    return { token: data.token, user: data.user };
   }
 
   /**
@@ -1979,7 +2022,7 @@ export class MusicAssistantApi {
   public async createUser(
     username: string,
     password: string,
-    role: UserRole,
+    role: string,
     displayName?: string,
     playerFilter?: string[],
     providerFilter?: string[],
@@ -2034,7 +2077,7 @@ export class MusicAssistantApi {
       username?: string;
       displayName?: string;
       avatarUrl?: string;
-      role?: UserRole;
+      role?: string;
       password?: string;
       preferences?: Record<string, any>;
       provider_filter?: string[];
@@ -2092,10 +2135,7 @@ export class MusicAssistantApi {
     }
   }
 
-  public async updateUserRole(
-    userId: string,
-    role: UserRole,
-  ): Promise<boolean> {
+  public async updateUserRole(userId: string, role: string): Promise<boolean> {
     // Update user role using unified update command
     try {
       await this.updateUser(userId, { role });
@@ -2208,6 +2248,88 @@ export class MusicAssistantApi {
       console.error("Error disabling user:", error);
       return false;
     }
+  }
+
+  // RBAC methods
+
+  public async getRoles(): Promise<Role[]> {
+    // Get all available roles
+    return this.sendCommand<Role[]>("rbac/roles");
+  }
+
+  public async getRole(roleId: string): Promise<Role | null> {
+    // Get role by ID (admin only)
+    return this.sendCommand<Role | null>("rbac/role", { role_id: roleId });
+  }
+
+  public async createRole(
+    name: string,
+    description: string,
+    permissions: string[],
+  ): Promise<Role> {
+    // Create a custom role (admin only)
+    return this.sendCommand<Role>("rbac/role/create", {
+      name,
+      description,
+      permissions,
+    });
+  }
+
+  public async updateRole(
+    roleId: string,
+    updates: {
+      name?: string;
+      description?: string;
+      permissions?: string[];
+    },
+  ): Promise<Role> {
+    // Update a custom role (admin only)
+    const args: Record<string, any> = { role_id: roleId };
+    if (updates.name) args.name = updates.name;
+    if (updates.description) args.description = updates.description;
+    if (updates.permissions) args.permissions = updates.permissions;
+    return this.sendCommand<Role>("rbac/role/update", args);
+  }
+
+  public async deleteRole(roleId: string): Promise<void> {
+    // Delete a custom role (admin only)
+    return this.sendCommand<void>("rbac/role/delete", { role_id: roleId });
+  }
+
+  public async getMyRoles(): Promise<Role[]> {
+    // Get current user's roles
+    return this.sendCommand<Role[]>("rbac/user/roles");
+  }
+
+  public async getUserRoles(userId: string): Promise<Role[]> {
+    // Get roles for a specific user (admin only)
+    return this.sendCommand<Role[]>("rbac/user/roles/list", {
+      user_id: userId,
+    });
+  }
+
+  public async assignRoleToUser(userId: string, roleId: string): Promise<void> {
+    // Assign a role to a user (admin only)
+    return this.sendCommand<void>("rbac/user/role/assign", {
+      user_id: userId,
+      role_id: roleId,
+    });
+  }
+
+  public async revokeRoleFromUser(
+    userId: string,
+    roleId: string,
+  ): Promise<void> {
+    // Revoke a role from a user (admin only)
+    return this.sendCommand<void>("rbac/user/role/revoke", {
+      user_id: userId,
+      role_id: roleId,
+    });
+  }
+
+  public async getPermissions(): Promise<Permission[]> {
+    // Get all available permissions
+    return this.sendCommand<Permission[]>("rbac/permissions");
   }
 
   // Remote Access methods
