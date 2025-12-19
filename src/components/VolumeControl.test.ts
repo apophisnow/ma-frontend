@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Provide a minimal localStorage mock for modules that access it at import time
 // (e.g., AuthManager constructor)
@@ -9,26 +9,28 @@ const _ls = {
 };
 // set on both global and window for different environments
 (global as any).localStorage = _ls;
-(global as any).window = Object.assign((global as any).window || {}, { localStorage: _ls });
-import { shallowMount } from '@vue/test-utils';
+(global as any).window = Object.assign((global as any).window || {}, {
+  localStorage: _ls,
+});
+import { shallowMount } from "@vue/test-utils";
 
 // Mock heavy modules before importing the component to avoid CSS imports
-vi.mock('@/components/Button.vue', () => ({
+vi.mock("@/components/Button.vue", () => ({
   default: {
-    name: 'Button',
-    template: '<div />',
-    props: ['icon', 'disabled'],
+    name: "Button",
+    template: "<div />",
+    props: ["icon", "disabled"],
   },
 }));
-vi.mock('@/layouts/default/PlayerOSD/PlayerVolume.vue', () => ({
+vi.mock("@/layouts/default/PlayerOSD/PlayerVolume.vue", () => ({
   default: {
-    name: 'PlayerVolume',
-    template: '<div />',
-    props: ['isPowered', 'disabled', 'modelValue'],
+    name: "PlayerVolume",
+    template: "<div />",
+    props: ["isPowered", "disabled", "modelValue"],
   },
 }));
 
-vi.mock('@/plugins/api', () => ({
+vi.mock("@/plugins/api", () => ({
   api: {
     players: {},
     sendCommand: vi.fn(),
@@ -36,18 +38,18 @@ vi.mock('@/plugins/api', () => ({
 }));
 
 // Mock auth and router to avoid side-effects at import time (AuthManager uses localStorage)
-vi.mock('@/plugins/auth', () => ({
+vi.mock("@/plugins/auth", () => ({
   authManager: {
     getCurrentUser: () => undefined,
     setCurrentUser: () => undefined,
   },
 }));
-vi.mock('@/plugins/router', () => ({
+vi.mock("@/plugins/router", () => ({
   default: {},
 }));
 
 // Mock the authorization composable to avoid loading role-fetching plumbing in this unit test
-vi.mock('@/composables/useAuthorization', () => ({
+vi.mock("@/composables/useAuthorization", () => ({
   useAuthorization: () => ({
     isAllowedSynced: (cmd: string) => false,
     fetchRoles: vi.fn(),
@@ -56,28 +58,38 @@ vi.mock('@/composables/useAuthorization', () => ({
 }));
 
 // We'll create a small inline test component that uses the authorization composable
-import { api } from '@/plugins/api';
-import { useAuthorization } from '@/composables/useAuthorization';
-import { defineComponent, h, computed } from 'vue';
+import { api } from "@/plugins/api";
+import { useAuthorization } from "@/composables/useAuthorization";
+import { defineComponent, h, computed } from "vue";
 
-describe('VolumeControl permission gating', () => {
+describe("VolumeControl permission gating", () => {
   beforeEach(() => {
     // reset store user
     store.currentUser = undefined;
-    (api.sendCommand as unknown as ReturnType<typeof vi.fn> & { mockReset?: () => void }).mockReset?.();
+    (
+      api.sendCommand as unknown as ReturnType<typeof vi.fn> & {
+        mockReset?: () => void;
+      }
+    ).mockReset?.();
   });
 
-  it('disables volume controls when current role lacks volume permissions', async () => {
+  it("disables volume controls when current role lacks volume permissions", async () => {
     // mock roles response: role 'restricted' with no permissions
-    (api.sendCommand as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-      { role_name: 'restricted', description: 'No volume', permissions: ['music/*'] },
+    (
+      api.sendCommand as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce([
+      {
+        role_name: "restricted",
+        description: "No volume",
+        permissions: ["music/*"],
+      },
     ]);
 
     // no need to set store.currentUser because useAuthorization is mocked
 
     const player = {
-      player_id: 'p1',
-      name: 'Test Player',
+      player_id: "p1",
+      name: "Test Player",
       supported_features: [
         // bitmask not necessary for test, presence of enums used earlier
       ],
@@ -90,14 +102,16 @@ describe('VolumeControl permission gating', () => {
 
     // Inline test component that shows PlayerVolume with disabled bound to authorization
     const TestComp = defineComponent({
-      name: 'TestComp',
+      name: "TestComp",
       setup() {
         const { isAllowedSynced } = useAuthorization();
-        const canAdjust = computed(() => isAllowedSynced('players/cmd/volume_set'));
+        const canAdjust = computed(() =>
+          isAllowedSynced("players/cmd/volume_set"),
+        );
         return { canAdjust };
       },
       render() {
-        return h('div', [h('PlayerVolume', { disabled: !this.canAdjust })]);
+        return h("div", [h("PlayerVolume", { disabled: !this.canAdjust })]);
       },
     });
 
@@ -105,9 +119,9 @@ describe('VolumeControl permission gating', () => {
       global: {
         stubs: {
           PlayerVolume: {
-            name: 'PlayerVolume',
-            template: '<div />',
-            props: ['disabled'],
+            name: "PlayerVolume",
+            template: "<div />",
+            props: ["disabled"],
           },
         },
       },
@@ -116,8 +130,8 @@ describe('VolumeControl permission gating', () => {
     // allow any pending promise from useAuthorization.fetchRoles
     await Promise.resolve();
 
-    const pv = wrapper.findComponent({ name: 'PlayerVolume' });
+    const pv = wrapper.findComponent({ name: "PlayerVolume" });
     expect(pv.exists()).toBe(true);
-    expect(pv.props('disabled')).toBeTruthy();
+    expect(pv.props("disabled")).toBeTruthy();
   });
 });

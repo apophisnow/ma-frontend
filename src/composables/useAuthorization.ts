@@ -1,11 +1,11 @@
-import { computed } from 'vue';
-import { store } from '@/plugins/store';
-import { useRoles } from './useRoles';
+import { computed } from "vue";
+import { store } from "@/plugins/store";
+import { useRoles } from "./useRoles";
 
 function patternMatches(pattern: string, command: string) {
   if (!pattern) return false;
-  if (pattern === '*') return true;
-  if (pattern.endsWith('*')) {
+  if (pattern === "*") return true;
+  if (pattern.endsWith("*")) {
     const prefix = pattern.slice(0, -1);
     return command.startsWith(prefix);
   }

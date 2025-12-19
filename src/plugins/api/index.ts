@@ -285,6 +285,7 @@ export class MusicAssistantApi {
   public async loginWithCredentials(
     username: string,
     password: string,
+    providerId?: string,
     deviceName?: string,
   ): Promise<{ token: string; user: User }> {
     // Mark as authenticating
@@ -299,6 +300,7 @@ export class MusicAssistantApi {
     }>("auth/login", {
       username,
       password,
+      provider_id: providerId || "builtin",
       device_name: deviceName || getDeviceName(),
     });
 

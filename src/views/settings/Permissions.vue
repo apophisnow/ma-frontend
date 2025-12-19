@@ -3,31 +3,35 @@
     <v-row>
       <v-col>
         <v-toolbar flat>
-          <v-toolbar-title>{{ $t('auth.permissions') }}</v-toolbar-title>
+          <v-toolbar-title>{{ $t("auth.permissions") }}</v-toolbar-title>
           <v-spacer />
         </v-toolbar>
 
         <v-card class="mt-4 pa-4">
-          <div class="text-subtitle-1 mb-4">{{ $t('settings.permissions_intro') }}</div>
+          <div class="text-subtitle-1 mb-4">
+            {{ $t("auth.permissions_intro") }}
+          </div>
 
           <v-table>
             <thead>
               <tr>
-                <th>{{ $t('auth.permission_scope') }}</th>
-                <th>{{ $t('name') }}</th>
-                <th>{{ $t('description') }}</th>
-                <th>{{ $t('actions') }}</th>
+                <th>{{ $t("auth.name") }}</th>
+                <th>{{ $t("auth.description") }}</th>
+                <th>{{ $t("auth.permission_scope") }}</th>
+                <th>{{ $t("actions") }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="p in perms" :key="p.scope">
-                <td style="white-space:nowrap">
+                <td style="white-space: nowrap">{{ p.name }}</td>
+                <td>{{ p.description }}</td>
+                <td style="white-space: nowrap">
                   <code>{{ p.scope }}</code>
                 </td>
-                <td style="white-space:nowrap">{{ p.name }}</td>
-                <td>{{ p.description }}</td>
                 <td>
-                  <v-btn small variant="text" @click="copy(p.scope)">{{ $t('copy') }}</v-btn>
+                  <v-btn small variant="text" @click="copy(p.scope)">{{
+                    $t("copy")
+                  }}</v-btn>
                 </td>
               </tr>
             </tbody>
@@ -39,9 +43,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { api } from '@/plugins/api';
+import { ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import { api } from "@/plugins/api";
 
 const { t } = useI18n();
 
@@ -55,10 +59,10 @@ const perms = ref<Permission[]>([]);
 
 async function loadPermissions() {
   try {
-    const permissions = await api.sendCommand('rbac/permissions');
-    perms.value = permissions;
+    const permissions = await api.sendCommand("rbac/permissions");
+    perms.value = permissions as Permission[];
   } catch (error) {
-    console.error('Failed to load permissions:', error);
+    console.error("Failed to load permissions:", error);
   }
 }
 
@@ -70,9 +74,9 @@ function copy(text: string) {
   try {
     void navigator.clipboard.writeText(text);
     // toast could be added via vuetify-sonner, keep simple for now
-    alert(`${t('copied')}: ${text}`);
+    alert(`${t("copied")}: ${text}`);
   } catch (e) {
-    alert(t('copy_failed'));
+    alert(t("copy_failed"));
   }
 }
 </script>

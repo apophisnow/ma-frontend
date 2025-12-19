@@ -254,6 +254,27 @@
                   }}
                 </v-btn>
 
+                <!-- Guest Access Button -->
+                <v-btn
+                  v-if="hasGuestAccess"
+                  variant="outlined"
+                  size="x-large"
+                  block
+                  rounded="lg"
+                  class="text-none mt-4"
+                  :loading="isAuthenticating"
+                  @click="loginAsGuest"
+                >
+                  <v-icon start>mdi-account-outline</v-icon>
+                  {{ $t("auth.continue_as_guest") }}
+                </v-btn>
+                <p
+                  v-if="hasGuestAccess"
+                  class="text-caption text-center text-medium-emphasis mt-2"
+                >
+                  {{ $t("auth.guest_access_description") }}
+                </p>
+
                 <!-- Back button (only show for remote connections or when not hosted with API) -->
                 <v-btn
                   v-if="isRemoteConnection || !isHostedWithAPI"
@@ -583,6 +604,10 @@ const loginError = ref<string | null>(null);
 const authProviders = ref<AuthProvider[]>([]);
 const hasHomeAssistantAuth = computed(() =>
   authProviders.value.some((p) => p.provider_id === "homeassistant"),
+);
+
+const hasGuestAccess = computed(() =>
+  authProviders.value.some((p) => p.provider_id === "guest"),
 );
 
 // OAuth state
@@ -1405,6 +1430,29 @@ const login = async () => {
       username: username.value.trim(),
       password: password.value,
     });
+  }
+};
+
+/**
+ * Login as guest without credentials
+ */
+const loginAsGuest = async () => {
+  isAuthenticating.value = true;
+  loginError.value = null;
+
+  try {
+    // Authenticate with guest provider (no credentials needed)
+    const result = await api.loginWithCredentials("", "", "guest");
+
+    // Emit authenticated event with token and user
+    emit("authenticated", {
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    handleAuthenticationError(error);
+  } finally {
+    isAuthenticating.value = false;
   }
 };
 

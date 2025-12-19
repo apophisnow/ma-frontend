@@ -53,33 +53,50 @@
           </div>
         </template>
         <template #subtitle>
-          <div class="line-clamp-1" style="display:flex;gap:8px;align-items:center">
-            <div>{{ user.username }} •</div>
-            <div>
-              <v-tooltip>
-                <template #activator="{ props }">
-                  <span v-bind="props">{{ roleLabel(user) }}</span>
-                </template>
-                <div style="max-width:320px">
-                  <div v-if="rolesMap[user.role]">
-                    <div><strong>{{ rolesMap[user.role].description || user.role }}</strong></div>
-                    <div style="margin-top:6px"><em>{{ $t('auth.permissions') }}:</em></div>
-                    <ul style="margin:6px 0 0 16px;padding:0;list-style:disc">
-                      <li v-for="p in rolesMap[user.role].permissions" :key="p">{{ p }}</li>
-                    </ul>
-                  </div>
-                  <div v-else>
-                    {{ user.role }}
-                  </div>
-                </div>
-              </v-tooltip>
-            </div>
+          <div class="line-clamp-1">
+            {{ user.username }}
           </div>
         </template>
         <template #append>
-          <v-chip v-if="!user.enabled" size="small" color="error">
-            {{ $t("auth.disabled") }}
-          </v-chip>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <v-tooltip>
+              <template #activator="{ props }">
+                <v-chip
+                  v-bind="props"
+                  size="small"
+                  :color="getRoleColor(user.role)"
+                  variant="flat"
+                >
+                  {{ roleLabel(user) }}
+                </v-chip>
+              </template>
+              <div style="max-width: 320px">
+                <div v-if="rolesMap[user.role]">
+                  <div>
+                    <strong>{{
+                      rolesMap[user.role].description || user.role
+                    }}</strong>
+                  </div>
+                  <div style="margin-top: 6px">
+                    <em>{{ $t("auth.permissions") }}:</em>
+                  </div>
+                  <ul
+                    style="margin: 6px 0 0 16px; padding: 0; list-style: disc"
+                  >
+                    <li v-for="p in rolesMap[user.role].permissions" :key="p">
+                      {{ p }}
+                    </li>
+                  </ul>
+                </div>
+                <div v-else>
+                  {{ user.role }}
+                </div>
+              </div>
+            </v-tooltip>
+            <v-chip v-if="!user.enabled" size="small" color="error">
+              {{ $t("auth.disabled") }}
+            </v-chip>
+          </div>
         </template>
       </ListItem>
       <div
@@ -169,7 +186,7 @@ const { roles, fetchRoles } = useRoles();
 const rolesMap = computed(() => {
   const map: Record<string, any> = {};
   for (const r of roles.value) {
-    map[r.role_name] = r;
+    map[r.role_id] = r;
   }
   return map;
 });
@@ -304,11 +321,25 @@ onMounted(() => {
 });
 
 function roleLabel(user: User) {
-  if (user.role === 'admin') return t('auth.admin_role');
-  if (user.role === 'user') return t('auth.user_role');
   const r = rolesMap.value[user.role];
-  if (r && r.description) return r.role_name;
+  if (r && r.name) return r.name;
+  // Fallback for legacy roles or if role not found in map
+  if (user.role === "admin") return t("auth.admin_role");
+  if (user.role === "user") return t("auth.user_role");
   return user.role;
+}
+
+function getRoleColor(role: string) {
+  switch (role) {
+    case "admin":
+      return "primary";
+    case "dj":
+      return "purple";
+    case "guest":
+      return "grey";
+    default:
+      return "default";
+  }
 }
 </script>
 

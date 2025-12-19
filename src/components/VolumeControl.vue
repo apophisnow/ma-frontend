@@ -56,7 +56,7 @@
         </Button>
       </template>
       <template #default>
-          <PlayerVolume
+        <PlayerVolume
           color="secondary"
           width="100%"
           :is-powered="player.powered != false"
@@ -199,15 +199,15 @@
               color="secondary"
               width="100%"
               :is-powered="childPlayer.powered != false"
-                :disabled="
-                  !childPlayer.available ||
-                  childPlayer.powered == false ||
-                  childPlayer.volume_muted ||
-                  !childPlayer.supported_features.includes(
-                    PlayerFeature.VOLUME_SET,
-                  ) ||
-                  !canAdjustVolume
-                "
+              :disabled="
+                !childPlayer.available ||
+                childPlayer.powered == false ||
+                childPlayer.volume_muted ||
+                !childPlayer.supported_features.includes(
+                  PlayerFeature.VOLUME_SET,
+                ) ||
+                !canAdjustVolume
+              "
               :allow-wheel="allowWheel"
               :model-value="Math.round(childPlayer.volume_level || 0)"
               @update:model-value="
@@ -250,7 +250,7 @@ import {
 } from "@/plugins/api/interfaces";
 import { Volume, Volume1, Volume2, VolumeX } from "lucide-vue-next";
 import { computed, onMounted, ref } from "vue";
-import { useAuthorization } from '@/composables/useAuthorization';
+import { useAuthorization } from "@/composables/useAuthorization";
 
 export interface Props {
   player: Player;
@@ -296,7 +296,7 @@ onMounted(() => {
 const { isAllowedSynced } = useAuthorization();
 const canAdjustVolume = computed(() => {
   // check permission for a representative volume command; wildcard patterns will match
-  return isAllowedSynced('players/cmd/volume_set');
+  return isAllowedSynced("players/cmd/volume_set");
 });
 
 const canExpand = computed(() => {

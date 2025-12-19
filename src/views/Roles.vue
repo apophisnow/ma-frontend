@@ -26,7 +26,7 @@
               </div>
             </template>
             <template #item.actions="{ item }">
-              <div style="display: flex; gap: 4px;">
+              <div style="display: flex; gap: 4px">
                 <v-btn
                   v-if="!item.is_system"
                   icon
@@ -85,7 +85,9 @@
         <v-card-actions>
           <v-spacer />
           <v-btn text @click="showCreate = false">{{ $t("cancel") }}</v-btn>
-          <v-btn color="primary" @click="handleCreate">{{ $t("create") }}</v-btn>
+          <v-btn color="primary" @click="handleCreate">{{
+            $t("create")
+          }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
