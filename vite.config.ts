@@ -30,7 +30,13 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "public",
       filename: "sw.js",
+      devOptions: {
+        enabled: false,
+      },
       injectManifest: {
+        injectionPoint: undefined,
+        swSrc: "public/sw.js",
+        swDest: "music_assistant_frontend/sw.js",
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB
       },
       includeAssets: [

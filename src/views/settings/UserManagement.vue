@@ -1,75 +1,99 @@
 <template>
   <div>
-    <div class="users-header w-100">
-      <v-text-field
-        v-model="searchQuery"
-        :placeholder="$t('search')"
-        prepend-inner-icon="mdi-magnify"
-        variant="outlined"
-        density="compact"
-        hide-details
-        clearable
-        style="max-width: 400px"
-      />
-      <v-btn
-        color="primary"
-        variant="flat"
-        height="40"
-        class="add-user-btn"
-        prepend-icon="mdi-plus"
-        @click="showCreateDialog = true"
-      >
-        {{ $t("auth.create_user") }}
-      </v-btn>
-    </div>
-    <Container>
-      <ListItem
-        v-for="user in filteredUsers"
-        :key="user.user_id"
-        show-menu-btn
-        link
-        @menu="(evt: Event) => onMenu(evt, user)"
-        @click="editUser(user)"
-      >
-        <template #prepend>
-          <div class="user-avatar-wrapper">
-            <v-avatar
-              size="40"
-              :color="user.avatar_url ? undefined : 'grey-darken-2'"
-            >
-              <v-img v-if="user.avatar_url" :src="user.avatar_url" />
-              <v-icon
-                v-else
-                icon="mdi-account"
-                size="20"
-                color="grey-lighten-1"
-              />
-            </v-avatar>
+    <v-tabs v-model="activeTab" class="user-management-tabs">
+      <v-tab value="users">
+        <v-icon start>mdi-account-multiple</v-icon>
+        {{ $t("auth.user_management") }}
+      </v-tab>
+      <v-tab value="guest">
+        <v-icon start>mdi-account-key</v-icon>
+        {{ $t("settings.guest_access") }}
+      </v-tab>
+    </v-tabs>
+
+    <v-divider />
+
+    <v-tabs-window v-model="activeTab">
+      <!-- Users Tab -->
+      <v-tabs-window-item value="users">
+        <div class="users-header w-100">
+          <v-text-field
+            v-model="searchQuery"
+            :placeholder="$t('search')"
+            prepend-inner-icon="mdi-magnify"
+            variant="outlined"
+            density="compact"
+            hide-details
+            clearable
+            style="max-width: 400px"
+          />
+          <v-btn
+            color="primary"
+            variant="flat"
+            height="40"
+            class="add-user-btn"
+            prepend-icon="mdi-plus"
+            @click="showCreateDialog = true"
+          >
+            {{ $t("auth.create_user") }}
+          </v-btn>
+        </div>
+        <Container>
+          <ListItem
+            v-for="user in filteredUsers"
+            :key="user.user_id"
+            show-menu-btn
+            link
+            @menu="(evt: Event) => onMenu(evt, user)"
+            @click="editUser(user)"
+          >
+            <template #prepend>
+              <div class="user-avatar-wrapper">
+                <v-avatar
+                  size="40"
+                  :color="user.avatar_url ? undefined : 'grey-darken-2'"
+                >
+                  <v-img v-if="user.avatar_url" :src="user.avatar_url" />
+                  <v-icon
+                    v-else
+                    icon="mdi-account"
+                    size="20"
+                    color="grey-lighten-1"
+                  />
+                </v-avatar>
+              </div>
+            </template>
+            <template #title>
+              <div class="line-clamp-1">
+                {{ user.display_name || user.username }}
+              </div>
+            </template>
+            <template #subtitle>
+              <div class="line-clamp-1">
+                {{ user.username }} • {{ $t(`auth.${user.role}_role`) }}
+              </div>
+            </template>
+            <template #append>
+              <v-chip v-if="!user.enabled" size="small" color="error">
+                {{ $t("auth.disabled") }}
+              </v-chip>
+            </template>
+          </ListItem>
+          <div
+            v-if="users.length === 0"
+            class="text-center pa-8 text-medium-emphasis"
+          >
+            {{ $t("no_content") }}
           </div>
-        </template>
-        <template #title>
-          <div class="line-clamp-1">
-            {{ user.display_name || user.username }}
-          </div>
-        </template>
-        <template #subtitle>
-          <div class="line-clamp-1">
-            {{ user.username }} • {{ $t(`auth.${user.role}_role`) }}
-          </div>
-        </template>
-        <template #append>
-          <v-chip v-if="!user.enabled" size="small" color="error">
-            {{ $t("auth.disabled") }}
-          </v-chip>
-        </template>
-      </ListItem>
-      <div
-        v-if="users.length === 0"
-        class="text-center pa-8 text-medium-emphasis"
-      >
-        {{ $t("no_content") }}
-      </div>
-    </Container>
+        </Container>
+      </v-tabs-window-item>
+
+      <!-- Guest Access Tab -->
+      <v-tabs-window-item value="guest">
+        <GuestAccessSettings />
+      </v-tabs-window-item>
+    </v-tabs-window>
+
     <CreateUserDialog v-model="showCreateDialog" @created="loadUsers" />
     <EditUserDialog
       v-model="showEditDialog"
@@ -110,6 +134,7 @@ import DisableUserDialog from "@/components/users/DisableUserDialog.vue";
 import EditUserDialog from "@/components/users/EditUserDialog.vue";
 import ManageTokensDialog from "@/components/users/ManageTokensDialog.vue";
 import RevokeTokenDialog from "@/components/users/RevokeTokenDialog.vue";
+import GuestAccessSettings from "@/views/settings/GuestAccessSettings.vue";
 import { api } from "@/plugins/api";
 import type { AuthToken, User } from "@/plugins/api/interfaces";
 import { eventbus } from "@/plugins/eventbus";
@@ -119,6 +144,8 @@ import { useI18n } from "vue-i18n";
 import { toast } from "vuetify-sonner";
 
 const { t } = useI18n();
+
+const activeTab = ref("users");
 
 const users = ref<User[]>([]);
 const searchQuery = ref("");
@@ -273,6 +300,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.user-management-tabs {
+  background-color: transparent;
+}
+
 .users-header {
   display: flex;
   align-items: stretch;

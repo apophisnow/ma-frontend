@@ -685,11 +685,16 @@ const tryConnect = async (
 const tryStoredTokenAuth = async (token?: string): Promise<boolean> => {
   const authToken = token || localStorage.getItem(STORAGE_KEY_TOKEN);
   if (!authToken) {
+    console.info("[Login] No stored token available for auto-authentication");
     return false;
   }
 
   try {
-    console.debug("[Login] Trying to authenticate with token");
+    console.info(
+      "[Login] Trying to authenticate with token (length:",
+      authToken.length,
+      ")",
+    );
     connectionStatusMessage.value = t(
       "login.authenticating",
       "Authenticating...",
@@ -697,16 +702,22 @@ const tryStoredTokenAuth = async (token?: string): Promise<boolean> => {
 
     // Authenticate the WebSocket session with the token
     const result = await api.authenticateWithToken(authToken);
-    console.debug("[Login] Token authentication successful");
+    console.info(
+      "[Login] Token authentication successful, user:",
+      result.user.username,
+      "role:",
+      result.user.role,
+    );
 
     // Emit authenticated event - App.vue will handle the rest
     emit("authenticated", { token: authToken, user: result.user });
     return true;
   } catch (error) {
-    console.debug("[Login] Token authentication failed:", error);
+    console.warn("[Login] Token authentication failed:", error);
     // Clear invalid token (we're already connected, so this is a real auth failure)
     if (!token) {
       // Only clear stored token if we're not using a URL parameter token
+      console.info("[Login] Clearing invalid stored token");
       localStorage.removeItem(STORAGE_KEY_TOKEN);
     }
     return false;
@@ -756,6 +767,7 @@ const autoConnect = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const authCode = urlParams.get("code");
   const urlRemoteId = urlParams.get("remote_id");
+  // Note: guest_token is already handled in main.ts before Vue initialization
 
   // If remote_id is in URL, pre-fill and potentially auto-connect
   if (urlRemoteId) {
@@ -909,6 +921,10 @@ const autoConnect = async () => {
     );
 
     const storedToken = localStorage.getItem(STORAGE_KEY_TOKEN);
+    console.log(
+      "[Login] Retrieved stored token from localStorage:",
+      storedToken ? `YES (length: ${storedToken.length})` : "NO",
+    );
     const localWsUrl = getWebSocketUrlFromLocation();
 
     if (await tryConnect(localWsUrl, 3000)) {
@@ -947,6 +963,11 @@ const autoConnect = async () => {
   // 2. Try stored server address + token (for development mode)
   const storedAddress = localStorage.getItem(STORAGE_KEY_SERVER_ADDRESS);
   const storedToken = localStorage.getItem(STORAGE_KEY_TOKEN);
+  console.error("🔍 [Login] Stored address:", storedAddress || "NONE");
+  console.error(
+    "🔍 [Login] Stored token:",
+    storedToken ? `YES (length: ${storedToken.length})` : "NO",
+  );
 
   if (storedAddress && storedToken) {
     console.debug("[Login] Found stored server address and token");
@@ -986,6 +1007,50 @@ const autoConnect = async () => {
       return;
     }
     console.debug("[Login] Stored server connection failed");
+  }
+
+  // 2b. Try stored token without address (guest token in dev mode)
+  if (!storedAddress && storedToken) {
+    console.error(
+      "✅ [Login] Found guest token without stored address, trying default backend",
+    );
+    // In development mode (port 3000), try connecting to default backend on 8095
+    const defaultBackend = `http://${window.location.hostname}:8095`;
+    console.error("✅ [Login] Trying default backend:", defaultBackend);
+
+    const wsUrl = buildWebSocketUrl(defaultBackend);
+    if (await tryConnect(wsUrl, 3000)) {
+      console.error(
+        "✅ [Login] Default backend reachable, establishing connection",
+      );
+      serverAddress.value = defaultBackend;
+
+      // Establish connection
+      emit("local-connect", defaultBackend);
+      localStorage.setItem(STORAGE_KEY_SERVER_ADDRESS, defaultBackend);
+
+      // Wait for WebSocket connection
+      if (await waitForApiConnection()) {
+        // Try to authenticate with stored token
+        if (await tryStoredTokenAuth()) {
+          console.error("✅ [Login] Guest token auto-login successful!");
+          return; // Success - App.vue will take over
+        }
+      }
+
+      // Token auth failed, show login form for this server
+      console.error("❌ [Login] Guest token auth failed, showing login form");
+      try {
+        const url = new URL(defaultBackend);
+        connectedServerName.value = url.hostname;
+      } catch {
+        connectedServerName.value = defaultBackend;
+      }
+      await fetchAuthProviders();
+      step.value = "login";
+      return;
+    }
+    console.error("❌ [Login] Default backend connection failed");
   }
 
   // 3. Try stored server address without token (show login form)

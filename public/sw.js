@@ -6,10 +6,9 @@
  * when connected remotely, enabling browser caching and avoiding Base64 overhead.
  */
 
-import { precacheAndRoute } from "workbox-precaching";
-
-// Precache assets injected by workbox
-precacheAndRoute(self.__WB_MANIFEST);
+// Workbox will inject the precache manifest here during build
+// This is required for vite-plugin-pwa with injectManifest strategy
+const manifest = self.__WB_MANIFEST;
 
 // Store for pending HTTP requests
 const pendingRequests = new Map();

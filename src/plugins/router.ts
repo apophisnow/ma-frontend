@@ -254,6 +254,10 @@ const routes = [
             meta: { requiresAdmin: true },
           },
           {
+            path: "guest-access",
+            redirect: { name: "usersettings" },
+          },
+          {
             path: "frontend",
             name: "frontendsettings",
             component: () =>

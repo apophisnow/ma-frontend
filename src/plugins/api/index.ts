@@ -35,6 +35,7 @@ import {
   DSPConfig,
   DSPConfigPreset,
   EventType,
+  GuestAccessInfo,
   ItemMapping,
   MediaItemTypeOrItemMapping,
   MediaType,
@@ -328,6 +329,12 @@ export class MusicAssistantApi {
   ): Promise<{ user: User }> {
     // Mark as authenticating
     this.state.value = ConnectionState.AUTHENTICATING;
+    if (DEBUG)
+      console.debug(
+        "[API] Attempting token authentication (token length:",
+        token.length,
+        ")",
+      );
 
     try {
       const result = await this.sendCommand<{ user: User }>("auth", {
@@ -336,12 +343,22 @@ export class MusicAssistantApi {
       });
 
       if (result.user) {
+        if (DEBUG)
+          console.debug(
+            "[API] Token authentication successful for user:",
+            result.user.username,
+            "role:",
+            result.user.role,
+          );
         this.state.value = ConnectionState.AUTHENTICATED;
+      } else {
+        if (DEBUG) console.warn("[API] Token authentication returned no user");
       }
 
       return result;
     } catch (error) {
       // Token is invalid - require user authentication
+      if (DEBUG) console.error("[API] Token authentication failed:", error);
       this.state.value = ConnectionState.AUTH_REQUIRED;
       throw error;
     }
@@ -2232,6 +2249,37 @@ export class MusicAssistantApi {
     return this.sendCommand<RemoteAccessInfo>("remote_access/configure", {
       enabled,
     });
+  }
+
+  public async getGuestAccessInfo(): Promise<GuestAccessInfo> {
+    // Get guest access information (admin only)
+    return this.sendCommand<GuestAccessInfo>("guest_access/info");
+  }
+
+  public async configureGuestAccess(
+    enabled: boolean,
+    canPlayMedia?: boolean,
+    canControlQueue?: boolean,
+    canControlPlayback?: boolean,
+    canControlVolume?: boolean,
+    playerFilter?: string[],
+    providerFilter?: string[],
+  ): Promise<GuestAccessInfo> {
+    // Configure guest access (admin only)
+    return this.sendCommand<GuestAccessInfo>("guest_access/configure", {
+      enabled,
+      can_play_media: canPlayMedia,
+      can_control_queue: canControlQueue,
+      can_control_playback: canControlPlayback,
+      can_control_volume: canControlVolume,
+      player_filter: playerFilter,
+      provider_filter: providerFilter,
+    });
+  }
+
+  public async regenerateGuestToken(): Promise<GuestAccessInfo> {
+    // Regenerate guest access token (admin only)
+    return this.sendCommand<GuestAccessInfo>("guest_access/regenerate_token");
   }
 
   public sendCommand<Result>(

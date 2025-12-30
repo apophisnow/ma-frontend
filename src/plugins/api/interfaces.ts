@@ -958,6 +958,7 @@ export interface ButtonProps {
 export enum UserRole {
   ADMIN = "admin",
   USER = "user",
+  GUEST = "guest",
 }
 
 export enum AuthProviderType {
@@ -1027,4 +1028,16 @@ export interface RemoteAccessInfo {
   remote_id: string;
   using_ha_cloud: boolean;
   signaling_url: string;
+}
+
+export interface GuestAccessInfo {
+  enabled: boolean;
+  guest_url: string | null;
+  guest_token: string | null;
+  can_play_media: boolean;
+  can_control_queue: boolean;
+  can_control_playback: boolean;
+  can_control_volume: boolean;
+  player_filter: string[];
+  provider_filter: string[];
 }
