@@ -563,70 +563,69 @@ watch(showPlayerControls, (show) => {
   }
 });
 
+// Fetch party player, config and queue from the server.
+// Called on mount and again whenever providers reload (e.g. after a server reboot).
+const initializeDashboard = async () => {
+  try {
+    await refreshPartyPlayer();
+  } catch (e) {
+    console.warn("[PartyDashboard] Failed to refresh party player:", e);
+  }
+
+  try {
+    await fetchConfig(true);
+  } catch (e) {
+    console.warn("[PartyDashboard] Failed to fetch party config:", e);
+  }
+
+  try {
+    await fetchQueueItems(true);
+  } catch (e) {
+    console.warn("[PartyDashboard] Failed to fetch queue items:", e);
+  }
+};
+
 onMounted(async () => {
   // Apply parent container overrides
   applyParentStyles();
 
-  // Request wake lock to keep screen on
-  await requestWakeLock();
-  document.addEventListener("visibilitychange", handleVisibilityChange);
+  // Register event subscriptions eagerly — before any async work — so they
+  // are always active even when the initial server fetch fails (e.g. the
+  // party plugin hasn't finished loading after a server reboot).
 
-  // Set active player from party config (needed when opened in a new tab
-  // where the Default layout's player selection logic doesn't run)
-  await refreshPartyPlayer();
-
-  // Fetch party configuration via shared composable
-  const config = await fetchConfig();
-  if (config) {
-    if (config.album_art_background !== undefined) {
-      albumArtBackgroundEnabled.value = config.album_art_background;
-    }
-    if (config.show_player_controls !== undefined) {
-      showPlayerControls.value = config.show_player_controls;
-    }
-    if (config.display_lyrics !== undefined) {
-      displayLyrics.value = config.display_lyrics;
-    }
-    if (config.karaoke_mode !== undefined) {
-      karaokeMode.value = config.display_lyrics && config.karaoke_mode;
-    }
-    requestBadgeColor.value = config.request_badge_color ?? "#2196F3";
-    boostBadgeColor.value = config.boost_badge_color ?? "#FF5722";
-    antiBurnIn.value = config.anti_burn_in ?? false;
-  } else {
-    requestBadgeColor.value = "#2196F3";
-    boostBadgeColor.value = "#FF5722";
-  }
-
-  // Initial fetch
-  fetchQueueItems();
-
-  // Subscribe to queue item updates
+  // Queue item adds/removes
   const unsub1 = api.subscribe(
     EventType.QUEUE_ITEMS_UPDATED,
     (evt: EventMessage) => {
       if (evt.object_id !== store.activePlayerQueue?.queue_id) return;
-      // Force refetch when items are added/removed (e.g., Play Next)
-      // This ensures the view updates even if we're "within buffer"
       fetchQueueItems(true);
     },
   );
   onBeforeUnmount(unsub1);
 
-  // Subscribe to queue updates (for index changes)
+  // Queue index / state changes
   const unsub2 = api.subscribe(EventType.QUEUE_UPDATED, (evt: EventMessage) => {
     if (evt.object_id !== store.activePlayerQueue?.queue_id) return;
-    // Don't force refetch for index changes - let buffer optimization work
     fetchQueueItems();
   });
   onBeforeUnmount(unsub2);
 
-  // Subscribe to provider updates to detect party player config changes
+  // Provider updates (covers server reboot: providers finish loading, config
+  // changes, etc.) — do a full re-init so the dashboard picks up the party
+  // player and queue even if the initial attempt failed.
   const unsub3 = api.subscribe(EventType.PROVIDERS_UPDATED, async () => {
-    await refreshPartyPlayer();
-    fetchQueueItems(true);
+    await initializeDashboard();
   });
   onBeforeUnmount(unsub3);
+
+  // Request wake lock to keep screen on
+  await requestWakeLock();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  // Initial dashboard setup — errors are caught per-step inside
+  // initializeDashboard so a transient failure doesn't leave us without
+  // event subscriptions.
+  await initializeDashboard();
 });
 
 // Cleanup when leaving the party view
